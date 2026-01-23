@@ -1,0 +1,27 @@
+{
+  "name": "p2-final-project-abc",
+  "version": "1.0.0",
+  "description": "[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/c3PHjGNX)",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server",
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/472-68-AgileDevOps/p2-final-project-abc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/472-68-AgileDevOps/p2-final-project-abc/issues"
+  },
+  "homepage": "https://github.com/472-68-AgileDevOps/p2-final-project-abc#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
