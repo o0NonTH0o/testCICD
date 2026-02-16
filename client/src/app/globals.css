@@ -1,26 +1,290 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-sidebar-background: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --color-fluid-dark: hsl(var(--fluid-dark));
+  --color-fluid-mid: hsl(var(--fluid-mid));
+  --color-fluid-light: hsl(var(--fluid-light));
+  --color-fluid-bg: hsl(var(--fluid-bg));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #ededed;
-    --foreground: #ededed;
+    --background: 140 20% 96%;
+    --foreground: 150 50% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 50% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 50% 10%;
+
+    --primary: 152 60% 20%;
+    --primary-foreground: 140 20% 96%;
+
+    --secondary: 145 30% 90%;
+    --secondary-foreground: 152 60% 15%;
+
+    --muted: 140 15% 92%;
+    --muted-foreground: 150 20% 40%;
+
+    --accent: 155 45% 25%;
+    --accent-foreground: 140 20% 96%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 145 20% 85%;
+    --input: 145 20% 85%;
+    --ring: 152 60% 20%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Fluid background colors */
+    --fluid-dark: 152 70% 12%;
+    --fluid-mid: 155 55% 22%;
+    --fluid-light: 148 35% 75%;
+    --fluid-bg: 140 15% 95%;
+  }
+
+  .dark {
+    --background: 150 50% 5%;
+    --foreground: 140 20% 96%;
+
+    --card: 150 50% 8%;
+    --card-foreground: 140 20% 96%;
+
+    --popover: 150 50% 8%;
+    --popover-foreground: 140 20% 96%;
+
+    --primary: 152 50% 40%;
+    --primary-foreground: 150 50% 5%;
+
+    --secondary: 150 30% 15%;
+    --secondary-foreground: 140 20% 96%;
+
+    --muted: 150 30% 15%;
+    --muted-foreground: 145 15% 60%;
+
+    --accent: 155 40% 30%;
+    --accent-foreground: 140 20% 96%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 30% 20%;
+    --input: 150 30% 20%;
+    --ring: 152 50% 40%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --fluid-dark: 152 70% 8%;
+    --fluid-mid: 155 55% 18%;
+    --fluid-light: 148 35% 50%;
+    --fluid-bg: 150 50% 5%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Fluid Background Styles */
+@layer components {
+  .fluid-background {
+    position: relative;
+    min-height: 100vh;
+    background: hsl(var(--fluid-bg));
+    overflow: hidden;
+  }
+
+  .fluid-background::before,
+  .fluid-background::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.9;
+  }
+
+  .fluid-background::before {
+    width: 70vw;
+    height: 70vh;
+    top: -20%;
+    right: -20%;
+    background: radial-gradient(
+      ellipse at 30% 40%,
+      hsl(var(--fluid-dark)) 0%,
+      hsl(var(--fluid-mid)) 40%,
+      transparent 70%
+    );
+    animation: fluid-move-1 20s ease-in-out infinite;
+  }
+
+  .fluid-background::after {
+    width: 80vw;
+    height: 80vh;
+    bottom: -30%;
+    left: -20%;
+    background: radial-gradient(
+      ellipse at 60% 50%,
+      hsl(var(--fluid-dark)) 0%,
+      hsl(var(--fluid-mid)) 35%,
+      hsl(var(--fluid-light) / 0.5) 60%,
+      transparent 80%
+    );
+    animation: fluid-move-2 25s ease-in-out infinite;
+  }
+
+  .fluid-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+
+  .fluid-blob-1 {
+    width: 50vw;
+    height: 50vh;
+    top: 20%;
+    left: 30%;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--fluid-dark)) 0%,
+      hsl(var(--fluid-mid) / 0.8) 50%,
+      transparent 70%
+    );
+    animation: fluid-move-3 18s ease-in-out infinite;
+  }
+
+  .fluid-blob-2 {
+    width: 40vw;
+    height: 45vh;
+    top: 50%;
+    right: 10%;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--fluid-mid)) 0%,
+      hsl(var(--fluid-light) / 0.6) 60%,
+      transparent 80%
+    );
+    animation: fluid-move-4 22s ease-in-out infinite;
+  }
+
+  .fluid-blob-3 {
+    width: 35vw;
+    height: 40vh;
+    bottom: 10%;
+    left: 50%;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--fluid-dark)) 0%,
+      transparent 70%
+    );
+    animation: fluid-move-5 15s ease-in-out infinite;
+  }
+}
+
+@keyframes fluid-move-1 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(-5%, 10%) rotate(5deg) scale(1.05);
+  }
+  66% {
+    transform: translate(5%, -5%) rotate(-3deg) scale(0.95);
+  }
+}
+
+@keyframes fluid-move-2 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(8%, -8%) rotate(-5deg) scale(1.1);
+  }
+  66% {
+    transform: translate(-3%, 5%) rotate(3deg) scale(0.9);
+  }
+}
+
+@keyframes fluid-move-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-10%, 5%) scale(1.15);
+  }
+}
+
+@keyframes fluid-move-4 {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-5%, -10%) rotate(10deg);
+  }
+}
+
+@keyframes fluid-move-5 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(15%, -5%) scale(1.2);
+  }
 }

@@ -10,25 +10,16 @@ function SuccessContent() {
 
   useEffect(() => {
     if (token) {
-      // 1. เก็บ Token ลง LocalStorage (หรือ Cookie)
       localStorage.setItem('token', token);
-      console.log('Token saved:', token);
-      
-      // 2. (Optional) Redirect ไป Dashboard
-      // router.push('/dashboard');
+      router.push('/');
     }
   }, [token, router]);
 
   return (
-    <div className="p-10 flex flex-col items-center">
-      <h1 className="text-2xl text-green-600 font-bold">Login สำเร็จ! 🎉</h1>
-      <p className="mt-4">Token ของคุณคือ:</p>
-      <code className="bg-gray-100 p-4 rounded mt-2 break-all max-w-2xl block">
-        {token}
-      </code>
-      <p className="text-sm text-gray-500 mt-4">
-        (Token นี้ถูกบันทึกลง LocalStorage แล้ว พร้อมเรียก API)
-      </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500 mb-4"></div>
+      <p className="text-xl text-gray-600 font-medium">Authenticating...</p>
+
     </div>
   );
 }

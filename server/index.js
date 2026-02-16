@@ -25,6 +25,15 @@ app.use('/auth', authRoutes); // ตอนนี้ตัวแปร authRoutes
 const userRoutes = require('./src/routes/userRoutes');
 app.use('/api/users', userRoutes); 
 
+const masterDataRoutes = require('./src/routes/masterDataRoutes');
+app.use('/api/master', masterDataRoutes);
+
+const adminRoutes = require('./src/routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
+
+const uploadRoutes = require('./src/routes/uploadRoutes');
+app.use('/api/files', uploadRoutes);
+
 app.get('/', (req, res) => {
   res.send('Hello from Server!');
 });

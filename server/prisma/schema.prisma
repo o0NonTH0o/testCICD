@@ -64,6 +64,10 @@ model User {
   role          UserRole  @default(STUDENT)
   status        UserStatus @default(PENDING_ONBOARDING)
 
+  // Direct campus link for higher level roles (e.g. Campus Admin)
+  campusId      String?
+  campus        Campus?   @relation(fields: [campusId], references: [id])
+
   facultyId     String?   
   faculty       Faculty?  @relation(fields: [facultyId], references: [id])
 
@@ -123,6 +127,23 @@ model Campus {
   campusName  String
   
   faculties   Faculty[]
+  users       User[]
+  periods     ApplicationPeriod[]
+}
+
+model ApplicationPeriod {
+  id           String   @id @default(uuid())
+  academicYear String   // e.g., "2566"
+  semester     String   // "1", "2", "SUMMER"
+  
+  startDate    DateTime
+  endDate      DateTime
+  
+  campusId     String
+  campus       Campus   @relation(fields: [campusId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Faculty {
@@ -148,47 +169,79 @@ model Department {
 
 model AwardApplication {
   id               String    @id @default(uuid())
-  voteCount        Int?      @default(0)
-  awardWorkDate    DateTime?
-  competition      String?
-  teamName         String?
-  awardWorkTitle   String?
-  awards           String?
-  organizer        String?
-  activityType     String?
-  competitionLevel String?
-  age              Int?
-  birthdate        DateTime?
-  gpax             Float?
-  advisor          String?
-  year             Int?
-  address          String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   
-  status ApplicationStatus @default(DRAFT)
+  // Basic Info
+  academicYear     String    // e.g. "2566"
+  semester         String    // "1", "2"
+  
+  gpax             Float?
+  
+  // Student verification file
+  transcriptFile   String?   
+  
+  // Status
+  status        ApplicationStatus @default(DRAFT)
+  voteCount     Int?      @default(0)
 
-  userId String
-  typeId String
+  // Relations
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // Note: AwardType might be per WorkItem or per Application? 
+  // Usually the whole application is for a specific type (e.g. Activity, Innovation). 
+  // Let's keep it here if the whole submission must be 1 category.
+  typeId        String
+  awardType     AwardType @relation(fields: [typeId], references: [id])
 
-  user      User      @relation(fields: [userId], references: [id])
-  awardType AwardType @relation(fields: [typeId], references: [id])
+  workItems     WorkItem[]
+  approvalLogs  ApprovalLog[]
+  
+  // Constraint: One active application per term per user
+  // If rejected, does this constraint block them? 
+  // "If rejected, cannot submit again" -> Constraint is good.
+  @@unique([userId, academicYear, semester])
+}
 
-  fileLogs     FileLog[]
-  approvalLogs ApprovalLog[]
+model WorkItem {
+  id               String    @id @default(uuid())
+  
+  title            String
+  competitionName  String?
+  organizer        String?
+  awardDate        DateTime?
+  level            String?   // e.g. "University", "National"
+  rank             String?   // "Winner", "Runner-up"
+  isTeam           Boolean   @default(false)
+  teamName         String?
+  
+  // Files for this specific work
+  attachments      Attachment[]
+  
+  applicationId    String
+  application      AwardApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id              String @id @default(uuid())
+  fileUrl         String
+  fileName        String?
+  
+  workItemId      String
+  workItem        WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
 }
 
 model AwardType {
-  id        String @id @default(uuid())
-  awardName String
+  id              String   @id @default(uuid())
+  awardName       String
+  description     String?
+  iconUrl         String?
+  scheduleFileUrl String?
+  criteria        String?
+  tags            String[]
 
-  applications AwardApplication[]
-}
-
-model FileLog {
-  id              String @id @default(uuid())
-  attachedFileUrl String
-
-  applicationId   String
-  application     AwardApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applications    AwardApplication[]
 }
 
 model ApprovalLog {
