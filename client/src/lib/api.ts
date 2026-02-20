@@ -13,9 +13,13 @@ class ApiClient {
     
     // Use Record<string, string> to safely access and modify headers
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
+
+    // Default to application/json if not FormData
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -44,9 +48,18 @@ class ApiClient {
   }
 
   post<T>(endpoint: string, body: unknown) {
+    const isFormData = body instanceof FormData;
     return this.fetch<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: isFormData ? (body as BodyInit) : JSON.stringify(body),
+    });
+  }
+
+  put<T>(endpoint: string, body: unknown) {
+    const isFormData = body instanceof FormData;
+    return this.fetch<T>(endpoint, {
+      method: 'PUT',
+      body: isFormData ? (body as BodyInit) : JSON.stringify(body),
     });
   }
 

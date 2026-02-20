@@ -3,9 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCurrentUser } from '../hooks/useCurrentUser';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 
-export default function Navbar() {
+export default function ApproverNavbar() {
   const { user, loading } = useCurrentUser();
   const pathname = usePathname();
 
@@ -15,8 +15,19 @@ export default function Navbar() {
       : "text-gray-500 font-medium hover:text-green-600 transition-colors";
   };
 
-  const isHomeActive = pathname === '/' || pathname?.startsWith('/student/home') || pathname?.startsWith('/admin/home');
-  const isAppsActive = pathname?.startsWith('/student/applications');
+  const isHomeActive = pathname?.includes('/home');
+  // For now, let's say "Application" links to the home page or a specific list page.
+  // Since the user wants a "Home similar to Admin", the list might be on a separate page or the home page itself.
+  // Let's assume there is an '/applications' route or we link back to home for now if it contains the list.
+  // Or maybe we create a separate applications page.
+  // Let's check the previous implementation. `head_of_department/home` WAS the list.
+  // If I change home to be a dashboard, I should move the list to `head_of_department/applications`.
+  const isAppsActive = pathname?.includes('/applications');
+  
+  // Determine base path based on role
+  const basePath = user?.role === 'HEAD_OF_DEPARTMENT' ? '/head_of_department' : 
+                   user?.role === 'VICE_DEAN' ? '/vice_dean' : 
+                   user?.role === 'DEAN' ? '/dean' : '/approver';
 
   return (
     <nav className="bg-white border-b border-gray-200 px-8 h-20 flex items-center justify-between sticky top-0 z-50">
@@ -30,14 +41,14 @@ export default function Navbar() {
           </div>
           <div>
               <h1 className="text-xl font-bold text-gray-800 leading-none">KU Nisit Deeden</h1>
-              <p className="text-xs text-gray-500">Kasetsart University Student Award System</p>
+              <p className="text-xs text-gray-500">{user?.role ? user.role.replace(/_/g, ' ') : 'Approver'} Portal</p>
           </div>
         </div>
       </div>
 
       <div className="hidden md:flex items-center space-x-8">
-          <Link href="/student/home" className={getLinkClasses(isHomeActive)}>Home</Link>
-          <Link href="/student/applications" className={getLinkClasses(isAppsActive)}>My Application</Link>
+          <Link href={`${basePath}/home`} className={getLinkClasses(isHomeActive)}>Home</Link>
+          <Link href={`${basePath}/applications`} className={getLinkClasses(isAppsActive)}>Application</Link>
       </div>
 
       <div className="flex items-center gap-6">
@@ -47,11 +58,11 @@ export default function Navbar() {
             <>
               <div className="text-right hidden sm:block">
                   <p className="text-sm font-bold text-gray-900">{user.name}</p>
-                  <p className="text-xs text-gray-500">{user.actualId || user.email}</p>
+                  <p className="text-xs text-gray-500 uppercase">{user.faculty?.facultyName || user.department?.name || user.role}</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden relative border border-gray-100">
                   <img 
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
+                    src={user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
                     alt="User" 
                     className="h-full w-full object-cover" 
                   />

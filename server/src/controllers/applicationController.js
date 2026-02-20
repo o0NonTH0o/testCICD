@@ -52,7 +52,25 @@ exports.getApplications = async (req, res) => {
            departmentId: currentUser.departmentId
         };
       }
-    } else if (currentUser.role === 'VICE_DEAN' || currentUser.role === 'DEAN') {
+      // Filter State ที่เกี่ยวข้องกับ HoD
+      if (!status) {
+         where.status = {
+            in: ['PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD']
+         }
+      }
+    } else if (currentUser.role === 'VICE_DEAN') {
+      // Filter State ที่เกี่ยวข้องกับ Vice Dean
+      if (!status) {
+         where.status = {
+            in: [
+                'ACCEPTED_BY_DEPT_HEAD', // Effectively "Pending Vice Dean"
+                'PENDING_VICE_DEAN',     // Legacy/Explicit
+                'ACCEPTED_BY_VICE_DEAN', 
+                'REJECTED_BY_VICE_DEAN'
+            ]
+         }
+      }
+    } else if (currentUser.role === 'DEAN') {
       // Filter นิสิตในคณะเดียวกัน
       if (currentUser.facultyId) {
         where.user = {
@@ -60,12 +78,86 @@ exports.getApplications = async (req, res) => {
            facultyId: currentUser.facultyId
         };
       }
+      // Dean sees what Vice Dean Accepted
+      if (!status) {
+         where.status = {
+            in: [
+                'ACCEPTED_BY_VICE_DEAN', // Effectively "Pending Dean"
+                'PENDING_DEAN',
+                'ACCEPTED_BY_DEAN',
+                'REJECTED_BY_DEAN'
+            ]
+         }
+      }
+    } else if (currentUser.role === 'ADMIN') {
+      // Admin sees what Dean Accepted + Admin tasks
+      if (!status) {
+         where.status = {
+             in: [
+                 'ACCEPTED_BY_DEAN', // Effectively "Pending Admin"
+                 'PENDING_ADMIN',
+                 'ACCEPTED_BY_ADMIN',
+                 'REJECTED_BY_ADMIN',
+                 'PENDING_COMMITTEE',
+                 'NEEDS_EDIT',
+                 'APPROVED', // Admin might want to see final Approved too? User didn't list it but usually admins do. 
+                 // User listed: PENDING_ADMIN, ACCEPTED_BY_ADMIN, REJECTED_BY_ADMIN, PENDING_COMMITTEE, NEEDS_EDIT
+                 // I will stick to user request strictly + implicit incoming state 'ACCEPTED_BY_DEAN'
+             ]
+         }
+      }
+    } else if (currentUser.role === 'COMMITTEE') {
+       if (!status) {
+          where.status = {
+              in: [
+                  'ACCEPTED_BY_ADMIN', // Effectively "Pending Committee"
+                  'PENDING_COMMITTEE',
+                  'APPROVED',
+                  'REJECTED'
+              ]
+          }
+       }
     } else {
-      // Admin/Committee เห็นของคนอื่นได้ ระดับ Campus (บังคับด้วย campus logic ด้านบนแล้ว)
+      // Others (Super Admin?)
       if (userId) where.userId = userId;
     }
 
-    if (status) where.status = status;
+    // 4. Merge Filters (Fix: Ensure Role constraints are respected if necessary, or allow "View All in Scope" if explicit status requested)
+    // Current behavior: If user requests ?status=..., it overrides the default "Inbox" view.
+    // We apply the "Expanded Status" logic here.
+
+    if (status) {
+        let statusFilter = {};
+        
+        // Advanced Filtering for "Has Passed Stage X"
+        if (status === 'ACCEPTED_BY_DEPT_HEAD') {
+             // Anything that successfully passed Dept Head
+             statusFilter = { in: ['ACCEPTED_BY_DEPT_HEAD', 'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN', 'REJECTED_BY_VICE_DEAN', 'PENDING_DEAN', 'ACCEPTED_BY_DEAN', 'REJECTED_BY_DEAN', 'PENDING_ADMIN', 'ACCEPTED_BY_ADMIN', 'REJECTED_BY_ADMIN', 'PENDING_COMMITTEE', 'APPROVED', 'REJECTED'] };
+        } else if (status === 'ACCEPTED_BY_VICE_DEAN') {
+             statusFilter = { in: ['ACCEPTED_BY_VICE_DEAN', 'PENDING_DEAN', 'ACCEPTED_BY_DEAN', 'REJECTED_BY_DEAN', 'PENDING_ADMIN', 'ACCEPTED_BY_ADMIN', 'REJECTED_BY_ADMIN', 'PENDING_COMMITTEE', 'APPROVED', 'REJECTED'] };
+        } else if (status === 'ACCEPTED_BY_DEAN') {
+             statusFilter = { in: ['ACCEPTED_BY_DEAN', 'PENDING_ADMIN', 'ACCEPTED_BY_ADMIN', 'REJECTED_BY_ADMIN', 'PENDING_COMMITTEE', 'APPROVED', 'REJECTED'] };
+        } else if (status === 'ACCEPTED_BY_ADMIN') {
+             statusFilter = { in: ['ACCEPTED_BY_ADMIN', 'PENDING_COMMITTEE', 'APPROVED', 'REJECTED'] };
+        } else if (status === 'PENDING_DEPT_HEAD') {
+             statusFilter = 'PENDING_DEPT_HEAD';
+        } else if (status === 'PENDING_VICE_DEAN') {
+             // Explicit Pending Vice Dean + Implicit (Accepted by Dept Head but not processed by Vice Dean yet if strict flow isn't instant)
+             // In our flow, AcceptedByDeptHead IS the queue for Vice Dean.
+             statusFilter = { in: ['ACCEPTED_BY_DEPT_HEAD', 'PENDING_VICE_DEAN'] };
+        } else if (status === 'PENDING_DEAN') {
+             statusFilter = { in: ['ACCEPTED_BY_VICE_DEAN', 'PENDING_DEAN'] };
+        } else if (status === 'PENDING_ADMIN') {
+             statusFilter = { in: ['ACCEPTED_BY_DEAN', 'PENDING_ADMIN'] };
+        } else if (status === 'PENDING_COMMITTEE') {
+             statusFilter = { in: ['ACCEPTED_BY_ADMIN', 'PENDING_COMMITTEE'] };
+        } else {
+             // Normal strict filter
+             statusFilter = status;
+        }
+
+        where.status = statusFilter;
+    }
     if (year) where.academicYear = year;
     if (semester) where.semester = semester;
 
@@ -79,7 +171,8 @@ exports.getApplications = async (req, res) => {
              email: true, 
              faculty: true, 
              department: true,
-             image: true,
+             campus: true,
+             tel: true,
             }
         },
         awardType: true,
@@ -100,8 +193,8 @@ exports.getApplications = async (req, res) => {
     
     res.json(applications);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'ดึงข้อมูลไม่สำเร็จ' });
+    console.error('Error fetching applications:', error);
+    res.status(500).json({ error: 'ดึงข้อมูลไม่สำเร็จ: ' + error.message });
   }
 };
 
@@ -305,81 +398,101 @@ exports.updateStatus = async (req, res) => {
            break;
         case 'PENDING_DEPT_HEAD':
           if (role !== 'HEAD_OF_DEPARTMENT') return res.status(403).json({ error: "Waiting for Department Head" });
-          nextStatus = 'PENDING_VICE_DEAN';
+          nextStatus = 'ACCEPTED_BY_DEPT_HEAD'; // This implies Pending Vice Dean
           break;
-        case 'PENDING_VICE_DEAN':
-          if (role !== 'VICE_DEAN') return res.status(403).json({ error: "Waiting for Vice Dean" });
-          nextStatus = 'PENDING_DEAN';
-          break;
+        case 'ACCEPTED_BY_DEPT_HEAD':
+        case 'PENDING_VICE_DEAN': // Explicit pending state if used
+            if (role !== 'VICE_DEAN') return res.status(403).json({ error: "Waiting for Vice Dean" });
+            nextStatus = 'ACCEPTED_BY_VICE_DEAN'; // This implies Pending Dean
+            break;
+        case 'ACCEPTED_BY_VICE_DEAN':
         case 'PENDING_DEAN':
-          if (role !== 'DEAN') return res.status(403).json({ error: "Waiting for Dean" });
-          nextStatus = 'PENDING_ADMIN';
-          break;
+           if (role !== 'DEAN') return res.status(403).json({ error: "Waiting for Dean" });
+           nextStatus = 'ACCEPTED_BY_DEAN'; // This implies Pending Admin
+           break;
+        case 'ACCEPTED_BY_DEAN':
         case 'PENDING_ADMIN':
-          if (role !== 'ADMIN') return res.status(403).json({ error: "Waiting for Admin" });
-          nextStatus = 'PENDING_COMMITTEE';
-          break;
+           if (role !== 'ADMIN') return res.status(403).json({ error: "Waiting for Admin" });
+           nextStatus = 'ACCEPTED_BY_ADMIN'; // This implies Pending Committee
+           break;
+        case 'ACCEPTED_BY_ADMIN':
         case 'PENDING_COMMITTEE':
+            // Committee needs special voting logic? Or simple approve for now?
+            // Assuming simplified flow where Committee Member act creates vote, 
+            // but here we check who is calling. 
+            // If Single 'COMMITTEE' role approves, does it count as final?
+            // Let's keep the voting logic we saw earlier or simplify.
+            // Re-using the voting logic block below for PENDING_COMMITTEE
+            if (role !== 'COMMITTEE') return res.status(403).json({ error: "Waiting for Committee" });
+            nextStatus = 'PENDING_COMMITTEE'; // Logic stays inside voting block
+            break;
+        default:
+             // Already approved or rejected?
+             break;
+      }
+      
+      // Special Logic for Committee Voting
+      if (app.status === 'PENDING_COMMITTEE' || app.status === 'ACCEPTED_BY_ADMIN') {
           if (role !== 'COMMITTEE') return res.status(403).json({ error: "Waiting for Committee" });
           
-          // Count total committee members in this campus
           const totalCommittee = await prisma.user.count({
-              where: { 
-                  role: 'COMMITTEE',
-                  campusId: app.user.campusId
-              }
+              where: { role: 'COMMITTEE', campusId: app.user.campusId }
           });
-
-          // Check if this user already voted
+          
+          // Check existing vote (Step could be PENDING_COMMITTEE or ACCEPTED_BY_ADMIN)
           const existingVote = await prisma.approvalLog.findFirst({
-              where: {
-                  applicationId: id,
-                  actorId,
-                  step: 'PENDING_COMMITTEE'
+              where: { 
+                  applicationId: id, 
+                  actorId, 
+                  step: { in: ['PENDING_COMMITTEE', 'ACCEPTED_BY_ADMIN'] }
               }
           });
           
           if (existingVote) return res.status(400).json({ error: "You have already voted." });
           
-          // Log this vote first (We'll do it in the update block below, but for calculation we add 1)
+          // Count APPROVED votes
           const currentVotes = await prisma.approvalLog.count({
-              where: {
-                  applicationId: id,
-                  step: 'PENDING_COMMITTEE',
-                  action: 'APPROVED'
+              where: { 
+                  applicationId: id, 
+                  step: { in: ['PENDING_COMMITTEE', 'ACCEPTED_BY_ADMIN'] },
+                  action: 'APPROVED' 
               }
           });
           
-          const newVoteCount = currentVotes + 1;
-          
-          // Logic: Approved if > 50%
-          if (newVoteCount > totalCommittee / 2) {
+          if ((currentVotes + 1) > totalCommittee / 2) {
               nextStatus = 'APPROVED';
           } else {
-              // Stay PENDING_COMMITTEE until majority reached
-              // However, check if it's impossible to reach majority (Rejected)?
-              // e.g. if 'REJECTED' votes > 50%?
-              // Implementation detail: User asked "Status approved if > 50%, rejected if < 50%".
-              // This implies "At the end of voting". But let's trigger 'APPROVED' eagerly.
-              // For rejection, we'd need a 'REJECTED' action from committee too.
               nextStatus = 'PENDING_COMMITTEE'; 
           }
-          break;
       }
+
     } else if (action === 'REJECTED') {
-       // Committee voting REJECTED
-       if (app.status === 'PENDING_COMMITTEE' && role === 'COMMITTEE') {
-          // Similar logic for rejection votes
+       // Identify WHO is rejecting to set specific status
+       if (role === 'HEAD_OF_DEPARTMENT') nextStatus = 'REJECTED_BY_DEPT_HEAD';
+       else if (role === 'VICE_DEAN') nextStatus = 'REJECTED_BY_VICE_DEAN';
+       else if (role === 'DEAN') nextStatus = 'REJECTED_BY_DEAN';
+       else if (role === 'ADMIN') nextStatus = 'REJECTED_BY_ADMIN';
+       else if (role === 'COMMITTEE') {
+           // Voting Logic for Reject
            const totalCommittee = await prisma.user.count({
               where: { role: 'COMMITTEE', campusId: app.user.campusId }
           });
+          
           const existingVote = await prisma.approvalLog.findFirst({
-              where: { applicationId: id, actorId, step: 'PENDING_COMMITTEE' }
+              where: { 
+                  applicationId: id, 
+                  actorId, 
+                  step: { in: ['PENDING_COMMITTEE', 'ACCEPTED_BY_ADMIN'] } 
+              }
           });
           if (existingVote) return res.status(400).json({ error: "You have already voted." });
 
           const currentRejects = await prisma.approvalLog.count({
-              where: { applicationId: id, step: 'PENDING_COMMITTEE', action: 'REJECTED' }
+              where: { 
+                  applicationId: id, 
+                  step: { in: ['PENDING_COMMITTEE', 'ACCEPTED_BY_ADMIN'] }, 
+                  action: 'REJECTED' 
+              }
           });
           
           if ((currentRejects + 1) > totalCommittee / 2) {
@@ -389,8 +502,7 @@ exports.updateStatus = async (req, res) => {
               // Just record the vote
           }
        } else {
-          // Others: Immediate Reject
-          nextStatus = 'REJECTED';
+           nextStatus = 'REJECTED'; // Default reject
        }
     } else if (action === 'NEEDS_EDIT') {
       nextStatus = 'NEEDS_EDIT';

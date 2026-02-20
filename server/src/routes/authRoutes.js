@@ -32,7 +32,7 @@ router.get(
       return res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
     } else {
       // กรณีอื่นๆ หรือ REJECTED
-      return res.redirect(`${process.env.CLIENT_URL}/auth/rejected`);
+      return res.redirect(`${process.env.CLIENT_URL}/auth/reject?token=${token}`);
     }
   }
 );

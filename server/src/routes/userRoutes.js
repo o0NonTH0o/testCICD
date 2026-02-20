@@ -15,4 +15,10 @@ router.post('/onboard', authMiddleware, userController.onboardUser);
 // Admin อนุมัติ (Approve)
 router.patch('/:id/approve', authMiddleware, userController.approveUser);
 
+// Admin ปฏิเสธ (Reject)
+router.patch('/:id/reject', authMiddleware, userController.rejectUser);
+
+// Admin แก้ไขข้อมูล (Update)
+router.patch('/:id', authMiddleware, userController.updateUser);
+
 module.exports = router;

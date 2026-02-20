@@ -2,16 +2,29 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, loading } = useCurrentUser();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      router.push('/student/home');
+    if (!loading && user) {
+      if (user.role === 'STUDENT') {
+        router.push('/student/home');
+      } else {
+        router.push('/admin/awards');
+      }
     }
-  }, [router]);
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="fluid-background relative min-h-screen w-full overflow-hidden flex items-center justify-center font-sans">

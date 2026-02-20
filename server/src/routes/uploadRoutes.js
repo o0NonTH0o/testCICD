@@ -31,6 +31,7 @@ router.post('/', upload.single('file'), (req, res) => {
   res.json({
     message: 'File uploaded successfully',
     filename: req.file.key,
+    fileUrl: fileUrl,  // For frontend compatibility
     location: fileUrl,
     contentType: req.file.mimetype,
   });

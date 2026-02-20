@@ -27,9 +27,43 @@ export function useUsers() {
 
   const approveUser = async (id: string) => {
     try {
-      await api.patch(`/users/${id}/approve`, {});
-      // update local state
-      setUsers(prev => prev.filter(u => u.id !== id));
+      await api.fetch(`/users/${id}/approve`, { method: 'PATCH' });
+      // Update local state to remove approved user ONLY if we are viewing pending list
+      // But typically we might want to just refetch or update status
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'ACTIVE' } : u));
+      return true;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
+      return false;
+    }
+  };
+
+  const rejectUser = async (id: string) => {
+    try {
+      await api.fetch(`/users/${id}/reject`, { method: 'PATCH' });
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'REJECTED' } : u));
+      return true;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
+      return false;
+    }
+  };
+
+  const updateUser = async (id: string, data: Partial<User>) => {
+    try {
+      await api.fetch(`/users/${id}`, { 
+          method: 'PATCH',
+          body: JSON.stringify(data)
+      });
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...data } : u));
       return true;
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -46,6 +80,8 @@ export function useUsers() {
     loading,
     error,
     fetchUsers,
-    approveUser
+    approveUser,
+    rejectUser,
+    updateUser
   };
 }

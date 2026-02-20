@@ -22,9 +22,9 @@ export default function PendingPage() {
           router.push('/');
         }
         
-        // If Rejected -> Redirect to Rejected page (optional)
+        // If Rejected -> Redirect to Rejected page
         if (user.status === 'REJECTED') {
-           // router.push('/auth/rejected'); 
+           router.push('/auth/reject'); 
         }
       } catch (err) {
         console.error("Error checking status:", err);

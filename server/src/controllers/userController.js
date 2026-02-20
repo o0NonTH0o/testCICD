@@ -59,6 +59,72 @@ exports.approveUser = async (req, res) => {
   }
 };
 
+exports.rejectUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // เช็ค Role ว่าคนกดเป็น ADMIN เท่านั้น
+        // (จริงๆ แล้ว Middleware checkRole('ADMIN') แนะนำกว่า แต่ใส่ตรงนี้ก็ได้)
+        if (req.user.role !== 'ADMIN') {
+          return res.status(403).json({ error: "สำหรับ Admin เท่านั้น" });
+        }
+  
+        await prisma.user.update({
+            where: { id },
+            data: { status: 'REJECTED' }
+        });
+        
+        res.json({ message: "ปฏิเสธผู้ใช้งานเรียบร้อย สถานะเป็น REJECTED" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "เกิดข้อผิดพลาดในการปฏิเสธคำขอ" });
+    }
+  };
+
+// Admin แก้ไขข้อมูล User
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // เช็ค Role ว่าคนกดเป็น ADMIN เท่านั้น
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: "สำหรับ Admin เท่านั้น" });
+    }
+
+    const { 
+        name, 
+        role, 
+        actualId, 
+        campusId, 
+        facultyId, 
+        departmentId, 
+        email, 
+        tel,
+        status 
+    } = req.body;
+
+    const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+            name,
+            role,
+            actualId,
+            campusId,
+            facultyId,
+            departmentId,
+            email,
+            tel,
+            status
+        }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการแก้ไขข้อมูล" });
+  }
+};
+
 // ดึงรายชื่อ User (สำหรับ Admin เอาไว้ดูว่าใครรออนุมัติบ้าง)
 exports.getUsers = async (req, res) => {
   try {
@@ -78,7 +144,8 @@ exports.getUsers = async (req, res) => {
             campus: true
           }
         },
-        department: true
+        department: true,
+        campus: true
       },
       orderBy: { 
         // เรียงตามเวลาล่าสุดที่สมัครเข้ามา (ถ้าไม่มี createdAt ใน user schema ให้ใช้วิธีอื่น)

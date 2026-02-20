@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Navbar from '../../components/Navbar';
+import AdminNavbar from '../../components/admin/AdminNavbar';
 
 export default function AdminLayout({
   children,
@@ -10,8 +10,9 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-[#1a1a1a]">
-      <Navbar />
+      <AdminNavbar />
       {children}
     </div>
   );
 }
+

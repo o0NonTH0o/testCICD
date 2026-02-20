@@ -15,9 +15,17 @@ export type UserStatus =
 export type ApplicationStatus =
   | 'DRAFT'
   | 'PENDING_DEPT_HEAD'
+  | 'ACCEPTED_BY_DEPT_HEAD'
+  | 'REJECTED_BY_DEPT_HEAD'
   | 'PENDING_VICE_DEAN'
+  | 'ACCEPTED_BY_VICE_DEAN'
+  | 'REJECTED_BY_VICE_DEAN'
   | 'PENDING_DEAN'
+  | 'ACCEPTED_BY_DEAN'
+  | 'REJECTED_BY_DEAN'
   | 'PENDING_ADMIN'
+  | 'ACCEPTED_BY_ADMIN'
+  | 'REJECTED_BY_ADMIN'
   | 'PENDING_COMMITTEE'
   | 'APPROVED'
   | 'REJECTED'
@@ -27,6 +35,19 @@ export interface Department {
   id: string;
   name: string;
   facultyId: string;
+}
+
+export interface AwardType {
+  id: string;
+  awardName: string;
+  description?: string;
+  iconUrl?: string; // e.g. 'trophy' | 'star'
+  tags?: string[];
+  stats?: {
+    totalApplications: number;
+    submitted: number;
+    pending: number;
+  };
 }
 
 export interface Campus {
@@ -119,9 +140,7 @@ export interface AwardApplication {
   // Relations
   workItems: WorkItem[];
   approvalLogs: ApprovalLog[];
-  awardType?: {
-    awardName: string;
-  };
+  awardType?: AwardType;
   
   academicYear?: string;
   semester?: string;

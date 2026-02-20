@@ -1,66 +1,33 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApplications } from '../../../hooks/useApplications';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useMasterData } from '../../../hooks/useMasterData';
+import ApplicationTimerBanner from '../../../components/ApplicationTimerBanner';
 import AwardCard from '../../../components/AwardCard';
 import { getStatusColor, getStatusLabel } from '../../../lib/status-helper';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useCurrentUser();
-  const { applications, loading: appLoading, error } = useApplications();
-  const { awardTypes, activePeriod, loading: typesLoading } = useMasterData(); // added activePeriod
-
-  // Countdown State
-  const [timeLeft, setTimeLeft] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null);
+  const { applications } = useApplications();
+  const { awardTypes, activePeriod, loading: typesLoading } = useMasterData();
 
   useEffect(() => {
-    if (!userLoading && user?.role === 'ADMIN') {
-      router.push('/admin/home');
+    if (!userLoading && user) {
+      if (user.role === 'ADMIN') {
+        router.push('/admin/home');
+      } else if (user.role === 'HEAD_OF_DEPARTMENT') {
+        router.push('/head_of_department/home');
+      } else if (user.role === 'VICE_DEAN') {
+        router.push('/vice_dean/home');
+      } else if (user.role === 'DEAN') {
+        router.push('/dean/home');
+      }
     }
   }, [user, userLoading, router]);
-
-  // Countdown Logic
-  const calculateTime = React.useCallback((endDate: string) => {
-    const now = new Date().getTime();
-    const end = new Date(endDate).getTime();
-    const distance = end - now;
-    
-    if (distance < 0) {
-        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    }
-
-    return {
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000)
-    };
-  }, []);
-
-  // Timer Effect
-  useEffect(() => {
-    if (!activePeriod) return;
-
-    // Initial update - wrapped in requestAnimationFrame to avoid synchronous state update warning
-    const AnimationFrameId = requestAnimationFrame(() => {
-        setTimeLeft(calculateTime(activePeriod.endDate));
-    });
-
-    const interval = setInterval(() => {
-        setTimeLeft(calculateTime(activePeriod.endDate));
-    }, 1000);
-
-    return () => {
-        cancelAnimationFrame(AnimationFrameId);
-        clearInterval(interval);
-    };
-  }, [activePeriod, calculateTime]);
-
-
 
   // Loading States
   if (userLoading || typesLoading) {
@@ -78,36 +45,8 @@ export default function DashboardPage() {
     <main className="max-w-[1400px] mx-auto px-8 py-10 font-sans text-[#1a1a1a]">
       <div className="grid grid-cols-12 gap-8 mb-12">
         {/* Banner with Countdown */}
-        <div className="col-span-12 md:col-span-8 bg-gradient-to-r from-[#74c69d] to-[#b7e4c7] rounded-[40px] p-10 text-white flex flex-col items-center justify-center shadow-lg relative overflow-hidden min-h-[300px]">
-           {/* Abstract Circle Decoration */}
-           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-           
-           {activePeriod ? (
-             <>
-               <h2 className="text-3xl font-medium mb-6 tracking-wide">
-                  Application Time {activePeriod.academicYear}/{activePeriod.semester}
-               </h2>
-               
-               <div className="text-4xl md:text-6xl font-bold tracking-widest font-mono mb-2 drop-shadow-sm text-center tabular-nums">
-                 {timeLeft ? (
-                    <span>
-                      {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
-                    </span>
-                 ) : (
-                    <span>Loading...</span>
-                 )}
-               </div>
-               <p className="opacity-80 mt-2">
-                  Ends on {new Date(activePeriod.endDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
-               </p>
-             </>
-           ) : (
-             <div className="flex flex-col items-center justify-center h-full z-10">
-                <svg className="w-16 h-16 mb-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <h2 className="text-3xl font-medium mb-2 tracking-wide">ไม่อยู่ในช่วงรับสมัคร</h2>
-                <p className="opacity-80">โปรดติดตามประกาศจากทางคณะ/มหาวิทยาลัย</p>
-             </div>
-           )}
+        <div className="col-span-12 md:col-span-8">
+           <ApplicationTimerBanner activePeriod={activePeriod} className="h-full" />
         </div>
 
         {/* Notifications Panel */}
