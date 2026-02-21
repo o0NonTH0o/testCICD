@@ -180,7 +180,7 @@ async function main() {
   }
  
   // Super Admin (Global - optional or link to a primary campus)
-  const superAdminEmail = "surapat.pak@ku.th"; 
+  const superAdminEmail = "suraphat.l@ku.th"; 
   // Let's link super admin to Bangkhen by default or leave campusId null if system supports it
   // For strict campus isolation, maybe link to Bangkhen
   const bknCampus = await prisma.campus.findFirst({ where: { campusName: 'บางเขน' }});
@@ -188,14 +188,14 @@ async function main() {
   await prisma.user.upsert({
     where: { email: superAdminEmail },
     update: {
-      role: 'ADMIN',
+      role: 'VICE_DEAN',
       status: 'ACTIVE',
       campusId: bknCampus?.id 
     },
     create: {
       email: superAdminEmail,
-      name: "Super Admin",
-      role: 'ADMIN',
+      name: "Vice Dean",
+      role: 'VICE_DEAN',
       status: 'ACTIVE',
       campusId: bknCampus?.id
     }
