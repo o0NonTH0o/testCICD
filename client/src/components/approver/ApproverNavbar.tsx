@@ -16,13 +16,7 @@ export default function ApproverNavbar() {
   };
 
   const isHomeActive = pathname?.includes('/home');
-  // For now, let's say "Application" links to the home page or a specific list page.
-  // Since the user wants a "Home similar to Admin", the list might be on a separate page or the home page itself.
-  // Let's assume there is an '/applications' route or we link back to home for now if it contains the list.
-  // Or maybe we create a separate applications page.
-  // Let's check the previous implementation. `head_of_department/home` WAS the list.
-  // If I change home to be a dashboard, I should move the list to `head_of_department/applications`.
-  const isAppsActive = pathname?.includes('/applications');
+  // Removed isAppsActive as the link is removed
   
   // Determine base path based on role
   const basePath = user?.role === 'HEAD_OF_DEPARTMENT' ? '/head_of_department' : 
@@ -48,7 +42,7 @@ export default function ApproverNavbar() {
 
       <div className="hidden md:flex items-center space-x-8">
           <Link href={`${basePath}/home`} className={getLinkClasses(isHomeActive)}>Home</Link>
-          <Link href={`${basePath}/applications`} className={getLinkClasses(isAppsActive)}>Application</Link>
+          {/* Applications link removed as it requires specific award type context */}
       </div>
 
       <div className="flex items-center gap-6">

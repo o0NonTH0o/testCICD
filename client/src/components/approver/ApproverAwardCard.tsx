@@ -1,4 +1,6 @@
 import React from 'react';
+import Link from 'next/link';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 interface ApproverAwardCardProps {
   id: string;
@@ -11,6 +13,7 @@ interface ApproverAwardCardProps {
 }
 
 export default function ApproverAwardCard({ 
+  id,
   title, 
   iconUrl, 
   totalApplications, 
@@ -18,6 +21,10 @@ export default function ApproverAwardCard({
   pendingCount, 
   gradientType = 'blue' 
 }: ApproverAwardCardProps) {
+  const { user } = useCurrentUser();
+  const basePath = user?.role === 'HEAD_OF_DEPARTMENT' ? '/head_of_department' : 
+                   user?.role === 'VICE_DEAN' ? '/vice_dean' : 
+                   user?.role === 'DEAN' ? '/dean' : '/approver';
   
   const getTheme = () => {
     switch (gradientType) {
@@ -26,52 +33,75 @@ export default function ApproverAwardCard({
           bg: 'bg-gradient-to-br from-[#d8b4fe] to-[#c084fc]', 
           text: 'text-[#9333ea]', 
           subText: 'text-[#a855f7]',
-          iconBg: 'bg-white/90 text-[#9333ea]',
-          buttonStyle: 'border-[#d8b4fe] text-[#9333ea] hover:bg-[#faf5ff]'
+          border: 'border-[#f3e8ff]', 
+          iconBg: 'bg-white text-[#9333ea]',
+          buttonStyle: 'bg-white text-[#9333ea] border-[#e9d5ff] hover:bg-[#faf5ff]'
         };
       case 'yellow':
         return {
-          bg: 'bg-gradient-to-br from-[#fde047] to-[#facc15]', 
-          text: 'text-[#ca8a04]', 
-          subText: 'text-[#ca8a04]',
-          iconBg: 'bg-white/90 text-[#ca8a04]',
-          buttonStyle: 'border-[#fde047] text-[#ca8a04] hover:bg-[#fefce8]'
+          bg: 'bg-gradient-to-br from-[#fde68a] to-[#fcd34d]', 
+          text: 'text-[#d97706]',
+          subText: 'text-[#f59e0b]',
+          border: 'border-[#fef3c7]', 
+          iconBg: 'bg-white text-[#d97706]',
+          buttonStyle: 'bg-white text-[#d97706] border-[#fde68a] hover:bg-[#fffbeb]'
         };
-      case 'blue':
-      default:
+      default: // blue
         return {
-          bg: 'bg-gradient-to-br from-[#93c5fd] to-[#60a5fa]', 
+          bg: 'bg-gradient-to-br from-[#bfdbfe] to-[#93c5fd]', 
           text: 'text-[#2563eb]', 
           subText: 'text-[#3b82f6]',
-          iconBg: 'bg-white/90 text-[#2563eb]',
-          buttonStyle: 'border-[#93c5fd] text-[#2563eb] hover:bg-[#eff6ff]'
+          border: 'border-[#eff6ff]', 
+          iconBg: 'bg-white text-[#2563eb]',
+          buttonStyle: 'bg-white text-[#2563eb] border-[#dbeafe] hover:bg-[#eff6ff]'
         };
     }
   };
 
   const theme = getTheme();
 
+  // Rendering the specific icon based on iconUrl or default
   const renderIcon = () => {
-      if (iconUrl && iconUrl !== 'trophy') {
-         // Standardize image display to avoid next/image complexity for dynamic urls if external
-         // or use simple img tag as per previous implementation pattern
-         if (iconUrl.includes('/') || iconUrl.startsWith('http')) {
-             // eslint-disable-next-line @next/next/no-img-element
-             return <img src={iconUrl} alt="icon" className="w-8 h-8 object-contain" />;
-         }
-         return <span className="text-2xl">{iconUrl}</span>;
-      }
-      return (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-      );
+    // If iconUrl is a real file/url (contains dot or slash), render image
+    if (iconUrl && (iconUrl.startsWith('/') || iconUrl.startsWith('http') || iconUrl.startsWith('blob:'))) {
+        return (
+            <img 
+                src={iconUrl} 
+                alt={title} 
+                className="w-full h-full object-contain p-2"
+            />
+        );
+    }
+
+    // Fallback based on gradientType if no specific iconUrl or if it's just a keyword
+    if (gradientType === 'purple') {
+        // Lightbulb/Innovation
+        return (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+        );
+    } else if (gradientType === 'yellow') {
+        // Star / Good Conduct
+        return (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+            </svg>
+        );
+    } else {
+        // Trophy/Activity
+        return (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+        );
+    }
   };
 
   return (
-    <div className="bg-white rounded-[24px] overflow-hidden shadow-lg border border-gray-100 flex flex-col h-full transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-      {/* Header Gradient */}
-      <div className={`h-24 ${theme.bg} relative flex justify-center items-end pb-4`}>
-         <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-white opacity-20 rounded-full"></div>
-         
+    <div className={`bg-white rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full border ${theme.border}`}>
+      {/* Header with Gradient & Icon */}
+      <div className={`${theme.bg} h-28 relative flex items-center justify-center`}>
          <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-sm ${theme.iconBg} transform transition-transform duration-300`}>
             {renderIcon()}
          </div>
@@ -98,6 +128,14 @@ export default function ApproverAwardCard({
                 <span className="font-medium text-gray-500">รอดำเนินการ</span>
                 <span className={`font-bold ${theme.subText}`}>{pendingCount} คน</span>
             </div>
+        </div>
+
+        <div className="mt-auto w-full">
+            <Link href={`${basePath}/applications?typeId=${id}`}>
+                <button className={`w-full py-2 rounded-xl border-2 ${theme.buttonStyle} text-sm font-bold transition-all shadow-sm active:scale-95`}>
+                    ตรวจสอบ
+                </button>
+            </Link>
         </div>
       </div>
     </div>

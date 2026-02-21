@@ -12,8 +12,15 @@ export default function LoginPage() {
     if (!loading && user) {
       if (user.role === 'STUDENT') {
         router.push('/student/home');
+      } else if (user.role === 'HEAD_OF_DEPARTMENT') {
+        router.push('/head_of_department/home');
+      } else if (user.role === 'VICE_DEAN') {
+        router.push('/vice_dean/home');
+      } else if (user.role === 'DEAN') {
+        router.push('/dean/home');
       } else {
-        router.push('/admin/awards');
+        // ADMIN, COMMITTEE, etc.
+        router.push('/admin/home');
       }
     }
   }, [user, loading, router]);
