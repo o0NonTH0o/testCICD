@@ -10,6 +10,7 @@ export default function ViceDeanLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50 text-[#1a1a1a]">
+      {/* Assuming ApproverNavbar dynamically adjusts based on the User's Role */}
       <ApproverNavbar /> 
       {children}
     </div>
