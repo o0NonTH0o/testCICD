@@ -87,6 +87,7 @@ export interface User {
 export interface ApprovalLog {
   id: string;
   createdAt: string;
+  actorId?: string;
   actor: User;
   action: string;
   step: ApplicationStatus;

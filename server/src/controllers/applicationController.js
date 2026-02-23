@@ -45,78 +45,66 @@ exports.getApplications = async (req, res) => {
       // นิสิตเห็นแค่ของตัวเอง
       where.userId = currentUserId; 
     } else if (currentUser.role === 'HEAD_OF_DEPARTMENT') {
-      // Filter เฉพาะนิสิตในภาควิชาเดียวกัน
+      // เห็นเฉพาะนิสิตในภาควิชาตัวเอง — ทุก status (ไม่จำกัด stage)
       if (currentUser.departmentId) {
         where.user = {
-           ...where.user, // merge with campus if exists
+           ...where.user,
            departmentId: currentUser.departmentId
         };
       }
-      // Filter State ที่เกี่ยวข้องกับ HoD
+      // ซ่อน DRAFT ของคนอื่น (ยังไม่ submit)
       if (!status) {
-         where.status = {
-            in: ['PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD']
-         }
+        where.status = { not: 'DRAFT' };
       }
     } else if (currentUser.role === 'VICE_DEAN') {
-      // Filter State ที่เกี่ยวข้องกับ Vice Dean
-      if (!status) {
-         where.status = {
-            in: [
-                'ACCEPTED_BY_DEPT_HEAD', // Effectively "Pending Vice Dean"
-                'PENDING_VICE_DEAN',     // Legacy/Explicit
-                'ACCEPTED_BY_VICE_DEAN', 
-                'REJECTED_BY_VICE_DEAN'
-            ]
-         }
-      }
-    } else if (currentUser.role === 'DEAN') {
-      // Filter นิสิตในคณะเดียวกัน
+      // เห็นทุก application ในคณะตัวเอง ที่ผ่าน HoD มาแล้ว
       if (currentUser.facultyId) {
         where.user = {
-           ...where.user, 
+           ...where.user,
            facultyId: currentUser.facultyId
         };
       }
-      // Dean sees what Vice Dean Accepted
       if (!status) {
-         where.status = {
-            in: [
-                'ACCEPTED_BY_VICE_DEAN', // Effectively "Pending Dean"
-                'PENDING_DEAN',
-                'ACCEPTED_BY_DEAN',
-                'REJECTED_BY_DEAN'
-            ]
-         }
+        where.status = {
+          notIn: ['DRAFT', 'PENDING_DEPT_HEAD']
+        };
+      }
+    } else if (currentUser.role === 'DEAN') {
+      // เห็นทุก application ในคณะตัวเอง ที่ผ่าน Vice Dean มาแล้ว
+      if (currentUser.facultyId) {
+        where.user = {
+           ...where.user,
+           facultyId: currentUser.facultyId
+        };
+      }
+      if (!status) {
+        where.status = {
+          notIn: ['DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD', 'PENDING_VICE_DEAN']
+        };
       }
     } else if (currentUser.role === 'ADMIN') {
-      // Admin sees what Dean Accepted + Admin tasks
+      // เห็นทุก application ใน campus ตัวเอง ที่ผ่าน Dean มาแล้ว
       if (!status) {
-         where.status = {
-             in: [
-                 'ACCEPTED_BY_DEAN', // Effectively "Pending Admin"
-                 'PENDING_ADMIN',
-                 'ACCEPTED_BY_ADMIN',
-                 'REJECTED_BY_ADMIN',
-                 'PENDING_COMMITTEE',
-                 'NEEDS_EDIT',
-                 'APPROVED', // Admin might want to see final Approved too? User didn't list it but usually admins do. 
-                 // User listed: PENDING_ADMIN, ACCEPTED_BY_ADMIN, REJECTED_BY_ADMIN, PENDING_COMMITTEE, NEEDS_EDIT
-                 // I will stick to user request strictly + implicit incoming state 'ACCEPTED_BY_DEAN'
-             ]
-         }
+        where.status = {
+          notIn: [
+            'DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD',
+            'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN', 'REJECTED_BY_VICE_DEAN',
+            'PENDING_DEAN'
+          ]
+        };
       }
     } else if (currentUser.role === 'COMMITTEE') {
-       if (!status) {
-          where.status = {
-              in: [
-                  'ACCEPTED_BY_ADMIN', // Effectively "Pending Committee"
-                  'PENDING_COMMITTEE',
-                  'APPROVED',
-                  'REJECTED'
-              ]
-          }
-       }
+      // เห็นทุก application ใน campus ตัวเอง ที่ผ่าน Admin มาแล้ว
+      if (!status) {
+        where.status = {
+          notIn: [
+            'DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD',
+            'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN', 'REJECTED_BY_VICE_DEAN',
+            'PENDING_DEAN', 'ACCEPTED_BY_DEAN', 'REJECTED_BY_DEAN',
+            'PENDING_ADMIN'
+          ]
+        };
+      }
     } else {
       // Others (Super Admin?)
       if (userId) where.userId = userId;
@@ -177,7 +165,7 @@ exports.getApplications = async (req, res) => {
         },
         awardType: true,
         approvalLogs: { 
-            include: { actor: { select: { name: true, role: true } } },
+            include: { actor: { select: { id: true, name: true, role: true } } },
             orderBy: { createdAt: 'desc' }
         },
         workItems: {
@@ -222,7 +210,7 @@ exports.getApplicationById = async (req, res) => {
         },
         awardType: true,
         approvalLogs: { 
-            include: { actor: { select: { name: true, role: true } } },
+            include: { actor: { select: { id: true, name: true, role: true } } },
             orderBy: { createdAt: 'desc' }
         },
         workItems: {

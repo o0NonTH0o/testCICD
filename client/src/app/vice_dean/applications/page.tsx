@@ -35,8 +35,8 @@ export default function ViceDeanApplicationsPage() {
 
         // 2. Status Filter
         if (activeTab === 'PENDING') {
-            // Updated to Vice Dean pending status
-            return app.status === 'PENDING_VICE_DEAN';
+            // ACCEPTED_BY_DEPT_HEAD = effectively "Pending Vice Dean" in the state machine
+            return app.status === 'PENDING_VICE_DEAN' || app.status === 'ACCEPTED_BY_DEPT_HEAD';
         }
         
         if (activeTab === 'APPROVED') {

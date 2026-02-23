@@ -95,17 +95,13 @@ export default function DashboardPage() {
 
       {/* Awards Grid - Dynamic from Master Data */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-        {awardTypes.map(award => {
-            // Check if user has an active application for the current period
-            // Active means NOT REJECTED. If rejected, they might be able to apply again depending on policy.
-            // Assumption: 1 active app per term.
+        {awardTypes.map((award, index) => {
             const hasActiveApp = applications.some(app => 
                 app.academicYear === activePeriod?.academicYear && 
                 app.semester === activePeriod?.semester &&
                 app.status !== 'REJECTED'
             );
 
-            // Also check if activePeriod exists at all
             const isPeriodActive = !!activePeriod;
 
             let isDisabled = false;
@@ -119,12 +115,15 @@ export default function DashboardPage() {
                 disabledReason = 'สมัครไปแล้ว';
             }
 
+            const gradientType = index % 3 === 0 ? 'purple' : index % 3 === 1 ? 'blue' : 'yellow';
+
             return (
                 <AwardCard 
                     key={award.id} 
                     award={award} 
                     isDisabled={isDisabled}
                     disabledReason={disabledReason}
+                    gradientType={gradientType as 'purple' | 'blue' | 'yellow'}
                 />
             );
         })}

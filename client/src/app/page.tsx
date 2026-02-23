@@ -18,8 +18,10 @@ export default function LoginPage() {
         router.push('/vice_dean/home');
       } else if (user.role === 'DEAN') {
         router.push('/dean/home');
+      } else if (user.role === 'COMMITTEE') {
+        router.push('/committee/home');
       } else {
-        // ADMIN, COMMITTEE, etc.
+        // ADMIN, etc.
         router.push('/admin/home');
       }
     }

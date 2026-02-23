@@ -21,7 +21,8 @@ export default function ApproverNavbar() {
   // Determine base path based on role
   const basePath = user?.role === 'HEAD_OF_DEPARTMENT' ? '/head_of_department' : 
                    user?.role === 'VICE_DEAN' ? '/vice_dean' : 
-                   user?.role === 'DEAN' ? '/dean' : '/approver';
+                   user?.role === 'DEAN' ? '/dean' :
+                   user?.role === 'COMMITTEE' ? '/committee' : '/approver';
 
   return (
     <nav className="bg-white border-b border-gray-200 px-8 h-20 flex items-center justify-between sticky top-0 z-50">

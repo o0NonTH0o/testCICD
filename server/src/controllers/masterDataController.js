@@ -44,14 +44,65 @@ exports.getAwardTypes = async (req, res) => {
                 statFilter = {
                     user: { campusId: currentUser.campusId }
                 };
+            } else if (currentUser.role === 'COMMITTEE' && currentUser.campusId) {
+                // Committee sees campus stats
+                statFilter = {
+                    user: { campusId: currentUser.campusId }
+                };
             }
         }
+    }
+
+    // Status visibility window and "pending for this role" statuses per role
+    const roleConfig = {
+      HEAD_OF_DEPARTMENT: {
+        // Sees all submitted apps in their dept (anything past DRAFT)
+        visibleStatuses: null, // null = no status filter (handled by "not DRAFT" below)
+        notIn: ['DRAFT'],
+        pendingStatuses: ['PENDING_DEPT_HEAD'],
+      },
+      VICE_DEAN: {
+        notIn: ['DRAFT', 'PENDING_DEPT_HEAD'],
+        // ACCEPTED_BY_DEPT_HEAD is the implicit queue for vice dean
+        pendingStatuses: ['ACCEPTED_BY_DEPT_HEAD', 'PENDING_VICE_DEAN'],
+      },
+      DEAN: {
+        notIn: ['DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD', 'PENDING_VICE_DEAN'],
+        pendingStatuses: ['ACCEPTED_BY_VICE_DEAN', 'PENDING_DEAN'],
+      },
+      ADMIN: {
+        notIn: [
+          'DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD',
+          'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN', 'REJECTED_BY_VICE_DEAN',
+          'PENDING_DEAN',
+        ],
+        pendingStatuses: ['ACCEPTED_BY_DEAN', 'PENDING_ADMIN'],
+      },
+      COMMITTEE: {
+        notIn: [
+          'DRAFT', 'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD', 'REJECTED_BY_DEPT_HEAD',
+          'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN', 'REJECTED_BY_VICE_DEAN',
+          'PENDING_DEAN', 'ACCEPTED_BY_DEAN', 'REJECTED_BY_DEAN',
+          'PENDING_ADMIN',
+        ],
+        pendingStatuses: ['ACCEPTED_BY_ADMIN', 'PENDING_COMMITTEE'],
+      },
+    };
+
+    const config = user ? roleConfig[user.role] : null;
+
+    // Merge scope filter with status filter
+    if (config?.notIn) {
+      statFilter.status = { notIn: config.notIn };
+    } else if (user?.role === 'STUDENT') {
+      // Students see only their own (handled separately; no card stats needed)
+      statFilter.status = { not: 'DRAFT' };
     }
 
     const types = await prisma.awardType.findMany({
       include: {
         applications: {
-          where: statFilter, // Apply filter here
+          where: statFilter,
           select: {
             status: true
           }
@@ -60,11 +111,19 @@ exports.getAwardTypes = async (req, res) => {
     });
     
     // Process the data to add counts
+    const pendingStatuses = config?.pendingStatuses || [
+      'PENDING_DEPT_HEAD', 'ACCEPTED_BY_DEPT_HEAD',
+      'PENDING_VICE_DEAN', 'ACCEPTED_BY_VICE_DEAN',
+      'PENDING_DEAN', 'ACCEPTED_BY_DEAN',
+      'PENDING_ADMIN', 'ACCEPTED_BY_ADMIN',
+      'PENDING_COMMITTEE',
+    ];
+
     const result = types.map(type => {
       const total = type.applications.length;
       const submitted = type.applications.filter(app => app.status !== 'DRAFT').length;
-      const pending = type.applications.filter(app => 
-        ['PENDING_DEPT_HEAD', 'PENDING_VICE_DEAN', 'PENDING_DEAN', 'PENDING_ADMIN', 'PENDING_COMMITTEE'].includes(app.status)
+      const pending = type.applications.filter(app =>
+        pendingStatuses.includes(app.status)
       ).length;
 
       return {

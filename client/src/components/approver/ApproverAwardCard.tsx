@@ -24,7 +24,8 @@ export default function ApproverAwardCard({
   const { user } = useCurrentUser();
   const basePath = user?.role === 'HEAD_OF_DEPARTMENT' ? '/head_of_department' : 
                    user?.role === 'VICE_DEAN' ? '/vice_dean' : 
-                   user?.role === 'DEAN' ? '/dean' : '/approver';
+                   user?.role === 'DEAN' ? '/dean' :
+                   user?.role === 'COMMITTEE' ? '/committee' : '/approver';
   
   const getTheme = () => {
     switch (gradientType) {
