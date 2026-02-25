@@ -18,10 +18,8 @@ export default function ViceDeanApplicationDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Action state
-  const [comment, setComment] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [showRejectBox, setShowRejectBox] = useState(false);
 
   useEffect(() => {
     if (!userLoading) {
@@ -58,17 +56,11 @@ export default function ViceDeanApplicationDetailPage() {
   }, [id, user]);
 
   const handleAction = async (action: 'APPROVED' | 'REJECTED') => {
-    if (action === 'REJECTED' && !comment.trim()) {
-      setActionError('กรุณาระบุเหตุผลในการปฏิเสธ');
-      return;
-    }
     setActionLoading(true);
     setActionError(null);
     try {
-      await api.patch(`/applications/${id}/status`, { action, comment });
+      await api.patch(`/applications/${id}/status`, { action });
       await fetchApplication();
-      setComment('');
-      setShowRejectBox(false);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setActionError(err.message || 'เกิดข้อผิดพลาด');
@@ -367,21 +359,6 @@ export default function ViceDeanApplicationDetailPage() {
             </h3>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-              {/* Comment Box */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ความคิดเห็น / เหตุผล
-                  {showRejectBox && <span className="text-red-500 ml-1">*</span>}
-                </label>
-                <textarea
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="ระบุความคิดเห็นหรือเหตุผล (จำเป็นสำหรับการปฏิเสธ)"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent resize-none"
-                />
-              </div>
-
               {actionError && (
                 <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{actionError}</p>
               )}
@@ -403,13 +380,7 @@ export default function ViceDeanApplicationDetailPage() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (!showRejectBox) {
-                      setShowRejectBox(true);
-                    } else {
-                      handleAction('REJECTED');
-                    }
-                  }}
+                  onClick={() => handleAction('REJECTED')}
                   disabled={actionLoading}
                   className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-semibold rounded-xl transition-colors"
                 >
@@ -420,7 +391,7 @@ export default function ViceDeanApplicationDetailPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   )}
-                  {showRejectBox ? 'ยืนยันการปฏิเสธ' : 'ปฏิเสธ'}
+                  ปฏิเสธ
                 </button>
               </div>
             </div>

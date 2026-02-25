@@ -17,10 +17,19 @@ function OnboardingContent() {
   const [selectedCampus, setSelectedCampus] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState('');
   const [selectedDept, setSelectedDept] = useState('');
+
+  const needsFaculty = ['STUDENT', 'HEAD_OF_DEPARTMENT', 'VICE_DEAN', 'DEAN'].includes(role);
+  const needsDept   = ['STUDENT', 'HEAD_OF_DEPARTMENT'].includes(role);
   const [fullname, setFullname] = useState('');
   const [actualId, setActualId] = useState('');
   const [tel, setTel] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Reset faculty & dept when role changes
+  useEffect(() => {
+    setSelectedFaculty('');
+    setSelectedDept('');
+  }, [role]);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -73,8 +82,8 @@ function OnboardingContent() {
       await api.post('/users/onboard', {
         role,
         campusId: selectedCampus,
-        facultyId: selectedFaculty,
-        departmentId: selectedDept,
+        facultyId: needsFaculty ? selectedFaculty : undefined,
+        departmentId: needsDept ? selectedDept : undefined,
         name: fullname,
         actualId: role === 'STUDENT' ? actualId : undefined,
         tel
@@ -153,6 +162,7 @@ function OnboardingContent() {
             </div>
 
             {/* 3. Faculty */}
+            {needsFaculty && (
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1 pl-1">คณะ</label>
               <div className="relative">
@@ -171,8 +181,10 @@ function OnboardingContent() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* 4. Dept / Branch */}
+            {needsDept && (
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1 pl-1">สาขา</label>
               <div className="relative">
@@ -191,6 +203,7 @@ function OnboardingContent() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* 5. Name */}
             <div>

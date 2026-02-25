@@ -180,7 +180,7 @@ async function main() {
   }
  
   // Super Admin (Global - optional or link to a primary campus)
-  const superAdminEmail = "dheerawat.w@ku.th"; 
+  const superAdminEmail = "surapat.pak@ku.th"; 
   // Let's link super admin to Bangkhen by default or leave campusId null if system supports it
   // For strict campus isolation, maybe link to Bangkhen
   const bknCampus = await prisma.campus.findFirst({ where: { campusName: 'บางเขน' }});

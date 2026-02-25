@@ -241,10 +241,10 @@ export default function ApplicationDetailPage() {
                </div>
             </div>
             
-            {/* Approval History Log - Optional but good for detail view */}
+            {/* ประวัติการอนุมัติ */}
             {application.approvalLogs && application.approvalLogs.length > 0 && (
                 <div className="pt-8 border-t border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6">Approval History</h3>
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">ประวัติการอนุมัติ</h3>
                     <div className="space-y-6 relative pl-4 border-l-2 border-gray-100 ml-4">
                         {application.approvalLogs.map((log) => (
                             <div key={log.id} className="relative">
@@ -256,8 +256,8 @@ export default function ApplicationDetailPage() {
                                 
                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start">
                                     <div>
-                                        <p className="font-semibold text-gray-900">{log.action} <span className="text-gray-400 font-normal">by</span> {log.actor?.name}</p>
-                                        <p className="text-sm text-gray-500 mt-1">{log.comment || 'No comments'}</p>
+                                        <p className="font-semibold text-gray-900">{log.action} <span className="text-gray-400 font-normal">โดย</span> {log.actor?.name}</p>
+                                        <p className="text-sm text-gray-500 mt-1">{log.comment || 'ไม่มีความคิดเห็น'}</p>
                                     </div>
                                     <span className="text-xs text-gray-400 whitespace-nowrap mt-1 sm:mt-0">
                                         {new Date(log.createdAt).toLocaleString('th-TH')}

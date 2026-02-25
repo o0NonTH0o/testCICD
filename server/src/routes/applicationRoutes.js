@@ -16,4 +16,7 @@ router.post('/apply', authMiddleware, controller.createApplication);
 // PATCH /api/applications/:id/status - ผู้บริหารกดอนุมัติ/ตีกลับ
 router.patch('/:id/status', authMiddleware, controller.updateStatus);
 
+// PUT /api/applications/:id - Admin แก้ไขข้อมูลใบสมัคร
+router.put('/:id', authMiddleware, controller.updateApplication);
+
 module.exports = router;

@@ -13,8 +13,13 @@ export function useCurrentUser() {
         const data = await api.get<User>('/users/me');
         setUser(data);
       } catch (err) {
-        console.error('Failed to fetch current user', err);
-        setError('Failed to load user profile');
+        const msg = err instanceof Error ? err.message : '';
+        // 401 Unauthorized = not logged in yet, not a real error
+        if (!msg.toLowerCase().includes('unauthorized') && !msg.includes('401')) {
+          console.error('Failed to fetch current user', err);
+          setError('Failed to load user profile');
+        }
+        setUser(null);
       } finally {
         setLoading(false);
       }

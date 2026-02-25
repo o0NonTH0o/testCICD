@@ -362,6 +362,104 @@ exports.createApplication = async (req, res) => {
   }
 };
 
+// 3. Admin แก้ไขข้อมูลใบสมัคร (Edit Application)
+exports.updateApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: actorId, role } = req.user;
+
+    // Only ADMIN can edit
+    if (role !== 'ADMIN') {
+      return res.status(403).json({ error: 'เฉพาะ Admin เท่านั้นที่สามารถแก้ไขใบสมัครได้' });
+    }
+
+    const app = await prisma.awardApplication.findUnique({
+      where: { id },
+      include: { user: { select: { campusId: true } } },
+    });
+    if (!app) return res.status(404).json({ error: 'ไม่พบใบสมัครนี้' });
+
+    // Campus isolation
+    const actor = await prisma.user.findUnique({ where: { id: actorId } });
+    if (actor.campusId && actor.campusId !== app.user.campusId) {
+      return res.status(403).json({ error: 'ไม่มีสิทธิ์แก้ไขใบสมัครนี้' });
+    }
+
+    const { gpax, transcriptFile, typeId, workItems } = req.body;
+
+    // Build top-level update payload
+    const updateData = {};
+    if (gpax !== undefined) updateData.gpax = gpax !== null ? parseFloat(gpax) : null;
+    if (transcriptFile !== undefined) updateData.transcriptFile = transcriptFile || null;
+    if (typeId) {
+      const awardTypeExists = await prisma.awardType.findUnique({ where: { id: typeId } });
+      if (!awardTypeExists) return res.status(400).json({ error: 'ไม่พบประเภทรางวัลที่ระบุ' });
+      updateData.typeId = typeId;
+    }
+
+    // Replace workItems: delete all existing (cascade to attachments), then create new ones
+    if (workItems !== undefined) {
+      if (!Array.isArray(workItems) || workItems.length === 0) {
+        return res.status(400).json({ error: 'ต้องมีรายละเอียดผลงานอย่างน้อย 1 รายการ' });
+      }
+      for (const item of workItems) {
+        if (!item.attachments || item.attachments.length === 0) {
+          return res.status(400).json({ error: `ผลงาน "${item.title}" ต้องแนบไฟล์อย่างน้อย 1 ไฟล์` });
+        }
+      }
+
+      // Delete existing workItems (Attachment cascades via schema onDelete: Cascade)
+      await prisma.workItem.deleteMany({ where: { applicationId: id } });
+
+      updateData.workItems = {
+        create: workItems.map((item) => ({
+          title: item.title,
+          competitionName: item.competitionName || null,
+          organizer: item.organizer || null,
+          awardDate: item.awardDate ? new Date(item.awardDate) : null,
+          level: item.level || null,
+          rank: item.rank || null,
+          isTeam: item.isTeam || false,
+          teamName: item.isTeam ? item.teamName || null : null,
+          attachments: {
+            create: item.attachments.map((file) => ({
+              fileUrl: file.fileUrl,
+              fileName: file.fileName || null,
+            })),
+          },
+        })),
+      };
+    }
+
+    // Add MODIFIED log
+    updateData.approvalLogs = {
+      create: {
+        actorId,
+        action: 'MODIFIED',
+        step: app.status,
+        comment: req.body.comment || 'Admin แก้ไขข้อมูลใบสมัคร',
+      },
+    };
+
+    const updated = await prisma.awardApplication.update({
+      where: { id },
+      data: updateData,
+      include: {
+        workItems: { include: { attachments: true } },
+        approvalLogs: {
+          include: { actor: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('updateApplication error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 2. การอนุมัติ (Approve / Reject)
 exports.updateStatus = async (req, res) => {
   try {
@@ -371,7 +469,10 @@ exports.updateStatus = async (req, res) => {
     
     // action = APPROVED | REJECTED | NEEDS_EDIT
 
-    const app = await prisma.awardApplication.findUnique({ where: { id } });
+    const app = await prisma.awardApplication.findUnique({
+      where: { id },
+      include: { user: { select: { campusId: true } } },
+    });
     if (!app) return res.status(404).json({ error: "Application not found" });
 
     let nextStatus = app.status;

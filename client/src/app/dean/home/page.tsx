@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AwardType } from '../../../types';
 import ApproverAwardCard from '../../../components/approver/ApproverAwardCard'; 
@@ -10,11 +11,19 @@ import { useMasterData } from '../../../hooks/useMasterData';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 
 export default function DeanHomePage() {
-  const { user } = useCurrentUser();
+  const router = useRouter();
+  const { user, loading: userLoading } = useCurrentUser();
   const [awardTypes, setAwardTypes] = useState<AwardType[]>([]);
   const [loading, setLoading] = useState(true);
   
   const { activePeriod } = useMasterData();
+
+  useEffect(() => {
+    if (!userLoading) {
+      if (!user) router.push('/');
+      else if (user.role !== 'DEAN') router.push('/');
+    }
+  }, [user, userLoading, router]);
 
   useEffect(() => {
     const fetchTypes = async () => {

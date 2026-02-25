@@ -18,17 +18,28 @@ exports.onboardUser = async (req, res) => {
       return res.status(400).json({ error: "นิสิตต้องกรอกรหัสนิสิต" });
     }
 
+    // Validation: roles ที่ต้องการ faculty
+    const needsFaculty = ['STUDENT', 'HEAD_OF_DEPARTMENT', 'VICE_DEAN', 'DEAN'].includes(role);
+    const needsDept    = ['STUDENT', 'HEAD_OF_DEPARTMENT'].includes(role);
+
+    if (needsFaculty && !facultyId) {
+      return res.status(400).json({ error: "กรุณาเลือกคณะ" });
+    }
+    if (needsDept && !departmentId) {
+      return res.status(400).json({ error: "กรุณาเลือกสาขา" });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        name,           // อัปเดตชื่อ
-        role,           // บันทึก Role ที่ขอมา
-        actualId,
+        name,
+        role,
+        actualId: role === 'STUDENT' ? actualId : null,
         tel,
-        campusId,       // บันทึก Campus ที่เลือก
-        facultyId,
-        departmentId,
-        status: 'PENDING_APPROVAL' // <-- เปลี่ยนสถานะเป็น "รออนุมัติ"
+        campusId,
+        facultyId:    needsFaculty ? facultyId    : null,
+        departmentId: needsDept    ? departmentId : null,
+        status: 'PENDING_APPROVAL'
       }
     });
 

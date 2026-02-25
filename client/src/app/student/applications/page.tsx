@@ -11,6 +11,8 @@ export default function ApplicationsPage() {
   const { user, loading: userLoading } = useCurrentUser();
   const { applications, loading: appLoading, error } = useApplications();
   const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -38,7 +40,22 @@ export default function ApplicationsPage() {
     });
   };
 
-  const filteredApps = getFilteredApplications();
+  const filteredApps = (() => {
+    let apps = getFilteredApplications();
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      apps = apps.filter(app =>
+        app.awardType?.awardName?.toLowerCase().includes(q) ||
+        app.user?.name?.toLowerCase().includes(q)
+      );
+    }
+    apps = [...apps].sort((a, b) => {
+      const da = new Date(a.createdAt).getTime();
+      const db = new Date(b.createdAt).getTime();
+      return sortOrder === 'newest' ? db - da : da - db;
+    });
+    return apps;
+  })();
 
   // Stats for the tabs
   const pendingCount = applications ? applications.filter(a => !['APPROVED', 'REJECTED'].includes(a.status || '')).length : 0;
@@ -82,12 +99,14 @@ export default function ApplicationsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Filter Bar (Mock) */}
+        {/* Search & Sort */}
         <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mb-8">
             <div className="relative w-full sm:w-64">
                 <input 
-                    type="text" 
-                    placeholder="Search by name, email, or ID..." 
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="ค้นหาชื่อรางวัล..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -96,9 +115,13 @@ export default function ApplicationsPage() {
             </div>
             
             <div className="flex gap-2 w-full sm:w-auto">
-                 <select className="pl-4 pr-10 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm focus:ring-green-500 focus:border-green-500">
-                     <option>Sort by: Newest</option>
-                     <option>Sort by: Oldest</option>
+                 <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                    className="pl-4 pr-10 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm focus:ring-green-500 focus:border-green-500"
+                 >
+                     <option value="newest">ใหม่สุด</option>
+                     <option value="oldest">เก่าสุด</option>
                  </select>
             </div>
         </div>
@@ -122,20 +145,6 @@ export default function ApplicationsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No applications found in this tab</h3>
-                {activeTab === 'PENDING' && (
-                  <div className="mt-6">
-                      <button
-                          onClick={() => router.push('/student/create')}
-                          type="button"
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                      >
-                          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                          </svg>
-                          Draft New Application
-                      </button>
-                  </div>
-                )}
             </div>
         )}
       </div>

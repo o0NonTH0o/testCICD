@@ -1,13 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 import { api } from '../../../../lib/api';
 import { AwardApplication, WorkItemAttachment } from '../../../../types';
 import { getStatusColor, getStatusLabel } from '../../../../lib/status-helper';
 
-export default function HoDApplicationDetailPage() {
+// ──────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────
+
+const VOTE_STEPS = ['PENDING_COMMITTEE', 'ACCEPTED_BY_ADMIN'];
+
+function getMyVote(app: AwardApplication, userId: string): 'APPROVED' | 'REJECTED' | null {
+  if (!app.approvalLogs) return null;
+  const log = app.approvalLogs.find(
+    (l) => l.actor?.id === userId && VOTE_STEPS.includes(l.step)
+  );
+  if (!log) return null;
+  return log.action === 'APPROVED' ? 'APPROVED' : log.action === 'REJECTED' ? 'REJECTED' : null;
+}
+
+function getVoteCounts(app: AwardApplication) {
+  if (!app.approvalLogs) return { approve: 0, reject: 0 };
+  const relevant = app.approvalLogs.filter((l) => VOTE_STEPS.includes(l.step));
+  return {
+    approve: relevant.filter((l) => l.action === 'APPROVED').length,
+    reject: relevant.filter((l) => l.action === 'REJECTED').length,
+  };
+}
+
+// ──────────────────────────────────────
+// Page
+// ──────────────────────────────────────
+
+export default function CommitteeApplicationDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -17,56 +46,44 @@ export default function HoDApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Action state
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userLoading) {
-      if (!user) {
-        router.push('/');
-      } else if (user.role !== 'HEAD_OF_DEPARTMENT') {
-        router.push('/');
-      }
+      if (!user) router.push('/');
+      else if (user.role !== 'COMMITTEE') router.push('/');
     }
   }, [user, userLoading, router]);
 
-  const fetchApplication = async () => {
+  const fetchApplication = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       const data = await api.get<AwardApplication>(`/applications/${id}`);
       setApplication(data);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to load application');
-      } else {
-        setError('An error occurred');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load application');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    if (id && user && user.role === 'HEAD_OF_DEPARTMENT') {
-      fetchApplication();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, user]);
+    if (id && user?.role === 'COMMITTEE') fetchApplication();
+  }, [id, user, fetchApplication]);
 
-  const handleAction = async (action: 'APPROVED' | 'REJECTED') => {
+  const handleVote = async (action: 'APPROVED' | 'REJECTED') => {
     setActionLoading(true);
     setActionError(null);
     try {
-      await api.patch(`/applications/${id}/status`, { action });
+      await api.patch(`/applications/${id}/status`, {
+        action,
+        comment: action === 'APPROVED' ? 'เห็นชอบ โดยคณะกรรมการ' : 'ไม่เห็นชอบ โดยคณะกรรมการ',
+      });
       await fetchApplication();
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setActionError(err.message || 'เกิดข้อผิดพลาด');
-      } else {
-        setActionError('เกิดข้อผิดพลาด');
-      }
+      setActionError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด');
     } finally {
       setActionLoading(false);
     }
@@ -97,7 +114,7 @@ export default function HoDApplicationDetailPage() {
   if (loading || userLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
       </div>
     );
   }
@@ -108,19 +125,22 @@ export default function HoDApplicationDetailPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-4">{error || 'Application not found'}</p>
-          <button onClick={() => router.back()} className="text-green-600 hover:underline">
-            Go Back
-          </button>
+          <button onClick={() => router.back()} className="text-green-600 hover:underline">Go Back</button>
         </div>
       </div>
     );
   }
 
-  const isPending = application.status === 'PENDING_DEPT_HEAD';
+  const myVote = user ? getMyVote(application, user.id) : null;
+  const voteCounts = getVoteCounts(application);
+  const isVotable =
+    application.status === 'PENDING_COMMITTEE' || application.status === 'ACCEPTED_BY_ADMIN';
+  const isFinal = application.status === 'APPROVED' || application.status === 'REJECTED';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Header */}
+
+      {/* Sticky Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -137,10 +157,19 @@ export default function HoDApplicationDetailPage() {
               <h1 className="text-lg font-bold text-gray-900 truncate">
                 {application.awardType?.awardName || 'รายละเอียดใบสมัคร'}
               </h1>
-              <p className="text-xs text-gray-500">หัวหน้าภาควิชา · ตรวจสอบใบสมัคร</p>
+              <p className="text-xs text-gray-500">คณะกรรมการ · ตรวจสอบใบสมัคร</p>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            {/* Vote tally */}
+            <div className="hidden sm:flex items-center gap-3 text-sm text-gray-500">
+              <span className="flex items-center gap-1">
+                <ThumbsUp className="h-4 w-4 text-green-500" /> {voteCounts.approve}
+              </span>
+              <span className="flex items-center gap-1">
+                <ThumbsDown className="h-4 w-4 text-red-400" /> {voteCounts.reject}
+              </span>
+            </div>
             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(application.status)}`}>
               {getStatusLabel(application.status)}
             </span>
@@ -232,7 +261,7 @@ export default function HoDApplicationDetailPage() {
         {/* Work Items */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-green-500 rounded-full"></span>
+            <span className="w-1 h-6 bg-green-500 rounded-full" />
             ผลงานที่ส่ง
           </h3>
 
@@ -348,53 +377,98 @@ export default function HoDApplicationDetailPage() {
           </div>
         )}
 
-        {/* Action Panel — only shown when status is PENDING_DEPT_HEAD */}
-        {isPending && (
-          <div className="pt-8 border-t border-gray-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
-              ดำเนินการ
-            </h3>
+        {/* Vote Panel */}
+        <div className="pt-8 border-t border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="w-1 h-6 bg-blue-500 rounded-full" />
+            การลงมติ
+          </h3>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-              {actionError && (
-                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{actionError}</p>
-              )}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => handleAction('APPROVED')}
-                  disabled={actionLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-semibold rounded-xl transition-colors"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                  อนุมัติ
-                </button>
-
-                <button
-                  onClick={() => handleAction('REJECTED')}
-                  disabled={actionLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-semibold rounded-xl transition-colors"
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  )}
-                  ปฏิเสธ
-                </button>
+            {/* Vote tally */}
+            <div className="flex gap-6 mb-6">
+              <div className="flex items-center gap-2 text-sm">
+                <ThumbsUp className="h-5 w-5 text-green-500" />
+                <span className="font-bold text-gray-900 text-lg">{voteCounts.approve}</span>
+                <span className="text-gray-400">เห็นชอบ</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <ThumbsDown className="h-5 w-5 text-red-400" />
+                <span className="font-bold text-gray-900 text-lg">{voteCounts.reject}</span>
+                <span className="text-gray-400">ไม่เห็นชอบ</span>
               </div>
             </div>
+
+            {actionError && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2 mb-4">{actionError}</p>
+            )}
+
+            {isFinal ? (
+              <div className="py-4 text-center bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-500">
+                  {application.status === 'APPROVED' ? '✅ ใบสมัครนี้ผ่านการพิจารณาแล้ว' : '❌ ใบสมัครนี้ไม่ผ่านการพิจารณา'}
+                </p>
+              </div>
+            ) : !isVotable ? (
+              <div className="py-4 text-center bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-400">ใบสมัครนี้ยังไม่อยู่ในขั้นตอนการลงมติ</p>
+              </div>
+            ) : myVote ? (
+              <div className="space-y-3">
+                <div className={`rounded-xl px-4 py-3 text-sm font-medium text-center ${
+                  myVote === 'APPROVED'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {myVote === 'APPROVED' ? '✅ คุณลงมติ: เห็นชอบ' : '❌ คุณลงมติ: ไม่เห็นชอบ'}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleVote('APPROVED')}
+                    disabled={actionLoading || myVote === 'APPROVED'}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-green-200 bg-white py-3 text-sm font-medium text-green-600 hover:bg-green-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {actionLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500" /> : <ThumbsUp className="h-4 w-4" />}
+                    เห็นชอบ
+                  </button>
+                  <button
+                    onClick={() => handleVote('REJECTED')}
+                    disabled={actionLoading || myVote === 'REJECTED'}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-red-200 bg-white py-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {actionLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400" /> : <ThumbsDown className="h-4 w-4" />}
+                    ไม่เห็นชอบ
+                  </button>
+                </div>
+                <p className="text-xs text-center text-gray-400">คลิกอีกครั้งเพื่อเปลี่ยนมติ</p>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleVote('APPROVED')}
+                  disabled={actionLoading}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-semibold rounded-xl transition-colors"
+                >
+                  {actionLoading
+                    ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    : <ThumbsUp className="h-4 w-4" />}
+                  เห็นชอบ (Approve)
+                </button>
+                <button
+                  onClick={() => handleVote('REJECTED')}
+                  disabled={actionLoading}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-red-200 bg-white hover:bg-red-50 disabled:opacity-50 text-red-600 font-semibold rounded-xl transition-colors"
+                >
+                  {actionLoading
+                    ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400" />
+                    : <ThumbsDown className="h-4 w-4" />}
+                  ไม่เห็นชอบ
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
       </div>
     </div>

@@ -17,10 +17,8 @@ export default function DeanApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [comment, setComment] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [showRejectBox, setShowRejectBox] = useState(false);
 
   useEffect(() => {
     if (!userLoading) {
@@ -57,17 +55,11 @@ export default function DeanApplicationDetailPage() {
   }, [id, user]);
 
   const handleAction = async (action: 'APPROVED' | 'REJECTED') => {
-    if (action === 'REJECTED' && !comment.trim()) {
-      setActionError('กรุณาระบุเหตุผลในการปฏิเสธ');
-      return;
-    }
     setActionLoading(true);
     setActionError(null);
     try {
-      await api.patch(`/applications/${id}/status`, { action, comment });
+      await api.patch(`/applications/${id}/status`, { action });
       await fetchApplication();
-      setComment('');
-      setShowRejectBox(false);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setActionError(err.message || 'เกิดข้อผิดพลาด');
@@ -107,8 +99,8 @@ export default function DeanApplicationDetailPage() {
     );
   }
 
-  // จุดสำคัญ: เช็คสถานะว่าเป็นของคณบดีหรือยัง
-  const isPending = application.status === 'PENDING_DEAN';
+  // ACCEPTED_BY_VICE_DEAN = vice dean approved → now in Dean's queue; PENDING_DEAN is an explicit enum alias
+  const isPending = application.status === 'ACCEPTED_BY_VICE_DEAN' || application.status === 'PENDING_DEAN';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -240,20 +232,6 @@ export default function DeanApplicationDetailPage() {
             </h3>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ความคิดเห็น / เหตุผล
-                  {showRejectBox && <span className="text-red-500 ml-1">*</span>}
-                </label>
-                <textarea
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="ระบุความคิดเห็นหรือเหตุผล"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-green-400"
-                />
-              </div>
-
               {actionError && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{actionError}</p>}
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -265,14 +243,11 @@ export default function DeanApplicationDetailPage() {
                   อนุมัติผ่านระดับคณะ
                 </button>
                 <button
-                  onClick={() => {
-                    if (!showRejectBox) setShowRejectBox(true);
-                    else handleAction('REJECTED');
-                  }}
+                  onClick={() => handleAction('REJECTED')}
                   disabled={actionLoading}
                   className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl"
                 >
-                  {showRejectBox ? 'ยืนยันการปฏิเสธ' : 'ปฏิเสธ'}
+                  ปฏิเสธ
                 </button>
               </div>
             </div>

@@ -316,6 +316,15 @@ function ApplicationForm({ user, awardTypes, typeParam, modeParam }: Application
        alert('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วน');
        return false;
     }
+    if (!formData.gpax) {
+       alert('กรุณากรอกเกรดเฉลี่ยสะสม (GPAX)');
+       return false;
+    }
+    const gpaxNum = parseFloat(formData.gpax);
+    if (isNaN(gpaxNum) || gpaxNum < 0 || gpaxNum > 4) {
+       alert('GPAX ต้องอยู่ระหว่าง 0.00 - 4.00');
+       return false;
+    }
     if (!formData.transcriptFileObj) {
         alert('กรุณาอัปโหลดไฟล์ Transcript');
         return false;
@@ -526,6 +535,40 @@ function ApplicationForm({ user, awardTypes, typeParam, modeParam }: Application
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </div>
                                     </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 ml-1">GPAX <span className="text-red-400">*</span></label>
+                                    <input
+                                        type="number"
+                                        name="gpax"
+                                        step="0.01"
+                                        min="0"
+                                        max="4"
+                                        value={formData.gpax}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '' || val === '.') {
+                                                setFormData(prev => ({ ...prev, gpax: val }));
+                                                return;
+                                            }
+                                            const num = parseFloat(val);
+                                            if (!isNaN(num) && num <= 4) {
+                                                setFormData(prev => ({ ...prev, gpax: val }));
+                                            }
+                                        }}
+                                        onBlur={(e) => {
+                                            const num = parseFloat(e.target.value);
+                                            if (!isNaN(num)) {
+                                                const clamped = Math.min(4, Math.max(0, num));
+                                                setFormData(prev => ({ ...prev, gpax: clamped.toFixed(2) }));
+                                            }
+                                        }}
+                                        placeholder="0.00 - 4.00"
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-200 text-gray-800 placeholder-gray-300"
+                                    />
+                                    {formData.gpax && (parseFloat(formData.gpax) < 0 || parseFloat(formData.gpax) > 4) && (
+                                        <p className="text-xs text-red-400 mt-1 ml-1">ต้องอยู่ระหว่าง 0.00 - 4.00</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -739,6 +782,12 @@ function ApplicationForm({ user, awardTypes, typeParam, modeParam }: Application
                                     <label className="text-xs text-gray-400 block mb-1 font-bold ml-1">สาขาวิชา</label>
                                     <div className="px-4 py-3 bg-white border border-gray-200 rounded-2xl text-gray-700 text-sm font-medium">
                                         {formData.major}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-400 block mb-1 font-bold ml-1">GPAX</label>
+                                    <div className="px-4 py-3 bg-white border border-gray-200 rounded-2xl text-gray-700 text-sm font-medium">
+                                        {formData.gpax || '-'}
                                     </div>
                                 </div>
                              </div>
