@@ -15,7 +15,7 @@ app.use(passport.initialize());
 /* ================= ROUTES ================= */
 
 app.use('/api/applications', require('./src/routes/applicationRoutes'));
-app.use('/auth', require('./src/routes/authRoutes'));
+app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/users', require('./src/routes/userRoutes'));
 app.use('/api/master', require('./src/routes/masterDataRoutes')); // 👈 สำคัญ
 app.use('/api/admin', require('./src/routes/adminRoutes'));
