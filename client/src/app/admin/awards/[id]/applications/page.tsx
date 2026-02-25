@@ -107,6 +107,9 @@ export default function AwardApplicationsPage() {
     });
     return apps;
   })();
+console.log('applications raw', applications);
+console.log('awardTypeId', awardTypeId);
+console.log('filtered', filteredApps);
 
   const handleApprove = async (id: string) => {
     if (window.confirm('Are you sure you want to approve this application?')) {
