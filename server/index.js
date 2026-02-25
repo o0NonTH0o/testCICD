@@ -12,12 +12,15 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
+// ⭐ เพิ่มตรงนี้
+app.use('/uploads', express.static('uploads'));
+
 /* ================= ROUTES ================= */
 
 app.use('/api/applications', require('./src/routes/applicationRoutes'));
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/users', require('./src/routes/userRoutes'));
-app.use('/api/master', require('./src/routes/masterDataRoutes')); // 👈 สำคัญ
+app.use('/api/master', require('./src/routes/masterDataRoutes'));
 app.use('/api/admin', require('./src/routes/adminRoutes'));
 app.use('/api/files', require('./src/routes/uploadRoutes'));
 
