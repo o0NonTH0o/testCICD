@@ -366,8 +366,8 @@ function ApplicationForm({ user, awardTypes, typeParam, modeParam }: Application
       if (formData.transcriptFileObj) {
          const transcriptData = new FormData();
          transcriptData.append('file', formData.transcriptFileObj);
-         const res = await api.fetch<{ location: string }>('/files', { method: 'POST', body: transcriptData });
-         transcriptUrl = res.location;
+         const res = await api.fetch<{ url: string }>('/files', { method: 'POST', body: transcriptData });
+         transcriptUrl = res.url;
       }
 
       // 2. Upload Work Items Files
@@ -376,8 +376,8 @@ function ApplicationForm({ user, awardTypes, typeParam, modeParam }: Application
              if (att.file) {
                  const fileData = new FormData();
                  fileData.append('file', att.file);
-                 const res = await api.fetch<{ location: string }>('/files', { method: 'POST', body: fileData });
-                 return { fileUrl: res.location };
+                 const res = await api.fetch<{ url: string }>('/files', { method: 'POST', body: fileData });
+                 return { fileUrl: res.url };
              }
              // Handle case where fileUrl exists but no file object (e.g. from draft or edit mode if implemented)
              return { fileUrl: att.fileUrl || '' };
