@@ -1,37 +1,42 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const uploadDir = 'uploads';
-
-// สร้างโฟลเดอร์ถ้ายังไม่มี
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+// ตั้งค่า Cloudinary (ค่าเหล่านี้จะดึงมาจาก Environment Variables ใน Railway)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// ตั้งค่าการเก็บไฟล์ไปที่ Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    // แยกประเภทโฟลเดอร์ตามนามสกุลไฟล์
+    const isPDF = file.mimetype === 'application/pdf';
+    return {
+      folder: 'student_applications',
+      resource_type: isPDF ? 'raw' : 'auto', // PDF ต้องใช้ raw, รูปภาพใช้ auto
+      public_id: file.fieldname + '-' + Date.now(),
+    };
+  },
+});
+
+// กรองไฟล์เหมือนเดิม
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) cb(null, true);
-  else cb(new Error('Only images, PDFs, and Word documents are allowed!'));
+  if (allowedTypes.test(file.mimetype) || allowedTypes.test(file.originalname.toLowerCase())) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only images, PDFs, and Word documents are allowed!'));
+  }
 };
 
 const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
 module.exports = upload;
