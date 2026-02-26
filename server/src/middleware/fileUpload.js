@@ -11,15 +11,18 @@ cloudinary.config({
 
 // ตั้งค่าการเก็บไฟล์ไปที่ Cloudinary
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: async (req, file) => {
     const ext = file.originalname.split('.').pop();
+    const isPDF = file.mimetype === 'application/pdf';
 
     return {
       folder: 'student_applications',
-      resource_type: 'auto',   // ⭐ FIX ตัวจริง
+      resource_type: isPDF ? 'raw' : 'auto',
       public_id: file.fieldname + '-' + Date.now(),
       format: ext,
+
+      access_mode: 'public',   // ⭐⭐ ตัวนี้สำคัญสุด
     };
   },
 });
