@@ -12,8 +12,8 @@ router.post('/', upload.single('file'), async (req, res) => {
   // (หรือค่าที่ middleware ของคุณส่งมา)
 
   res.json({
-    url: result.secure_url   // ⭐ แก้ตรงนี้
-  });
+    url: req.file.path   // ⭐ ถูกต้องสำหรับ multer-storage-cloudinary
+  })
 });
 
 module.exports = router;
