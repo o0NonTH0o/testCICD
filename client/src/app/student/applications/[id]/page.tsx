@@ -26,6 +26,7 @@ export default function ApplicationDetailPage() {
         setLoading(true);
         // Direct API call since useApplications hook doesn't support getById yet
         const data = await api.get<AwardApplication>(`/applications/${id}`);
+        console.log('Application Data:', data)
         setApplication(data);
       } catch (err: unknown) {
         if (err instanceof Error) {
