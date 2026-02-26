@@ -22,7 +22,7 @@ const storage = new CloudinaryStorage({
       public_id: file.fieldname + '-' + Date.now(),
       format: ext,
 
-      access_mode: 'public',   // ⭐⭐ ตัวนี้สำคัญสุด
+      type: 'upload',   // ⭐⭐ ตัวนี้สำคัญสุด
     };
   },
 });
