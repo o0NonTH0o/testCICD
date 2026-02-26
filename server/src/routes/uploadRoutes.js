@@ -12,7 +12,9 @@ router.post('/', upload.single('file'), async (req, res) => {
   // (หรือค่าที่ middleware ของคุณส่งมา)
 
   res.json({
-    url: req.file.path   // ⭐ ถูกต้องสำหรับ multer-storage-cloudinary
+  url: req.file.path,
+  fileName: req.file.originalname,   // ⭐ เพิ่ม
+  publicId: req.file.filename        // ⭐ แนะนำเก็บ
   })
 });
 
