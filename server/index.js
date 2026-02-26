@@ -12,8 +12,6 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// ⭐ เพิ่มตรงนี้
-app.use('/uploads', express.static('uploads'));
 
 /* ================= ROUTES ================= */
 
