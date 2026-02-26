@@ -13,13 +13,13 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-  const ext = file.originalname.split('.').pop();   // ⭐ เอานามสกุลจริง
-  const isPDF = file.mimetype === 'application/pdf';
+    const ext = file.originalname.split('.').pop();
+
     return {
       folder: 'student_applications',
-      resource_type: isPDF ? 'raw' : 'auto',
+      resource_type: 'auto',   // ⭐ FIX ตัวจริง
       public_id: file.fieldname + '-' + Date.now(),
-      format: ext,   // ⭐⭐ อันนี้คือ fix จริง
+      format: ext,
     };
   },
 });
