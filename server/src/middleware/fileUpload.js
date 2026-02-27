@@ -1,41 +1,46 @@
 const multer = require('multer');
-const multerS3 = require('multer-s3');
-const s3Client = require('../config/s3');
-const path = require('path');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const bucketName = process.env.MINIO_BUCKET_NAME || 'uploads';
+// ตั้งค่า Cloudinary (ค่าเหล่านี้จะดึงมาจาก Environment Variables ใน Railway)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
+// ตั้งค่าการเก็บไฟล์ไปที่ Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    const ext = file.originalname.split('.').pop();
+    const isPDF = file.mimetype === 'application/pdf';
+
+    return {
+      folder: 'student_applications',
+      resource_type: isPDF ? 'raw' : 'auto',
+      public_id: file.fieldname + '-' + Date.now(),
+      format: ext,
+
+      type: 'upload',   // ⭐⭐ ตัวนี้สำคัญสุด
+    };
+  },
+});
+
+// กรองไฟล์เหมือนเดิม
 const fileFilter = (req, file, cb) => {
-  // Allow only certain types
   const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
+  if (allowedTypes.test(file.mimetype) || allowedTypes.test(file.originalname.toLowerCase())) {
+    cb(null, true);
   } else {
     cb(new Error('Only images, PDFs, and Word documents are allowed!'));
   }
 };
 
-const storage = multerS3({
-  s3: s3Client,
-  bucket: bucketName,
-  contentType: multerS3.AUTO_CONTENT_TYPE,
-  metadata: function (req, file, cb) {
-    cb(null, { fieldName: file.fieldname });
-  },
-  key: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, `uploads/${file.fieldname}-${uniqueSuffix}${extension}`);
-  }
-});
-
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
 module.exports = upload;
